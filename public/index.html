@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Дилемма заключенного</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding: 20px; background: #1a1a1a; color: white; }
+        .card { background: #2a2a2a; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); max-width: 400px; margin: auto; }
+        input { padding: 12px; width: 80%; margin-bottom: 20px; border-radius: 5px; border: none; font-size: 16px; }
+        .btn { padding: 15px 25px; margin: 10px; font-size: 18px; cursor: pointer; border: none; border-radius: 8px; color: white; font-weight: bold; transition: 0.3s; }
+        .silent { background: #2ecc71; width: 90%; }
+        .betray { background: #e74c3c; width: 90%; }
+        .start-btn { background: #3498db; }
+        #status { font-size: 1.2em; margin: 20px; color: #f1c40f; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Дилемма заключенного</h2>
+        
+        <div id="login-screen">
+            <input type="text" id="username" placeholder="Введите ваше имя" maxlength="15">
+            <button class="btn start-btn" onclick="join()">Войти в игру</button>
+        </div>
+
+        <div id="game-screen" style="display:none;">
+            <div id="status">Ожидание...</div>
+            <div id="game-actions" style="display:none;">
+                <button class="btn silent" onclick="send('silent')">Молчать</button>
+                <button class="btn betray" onclick="send('betray')">Предать</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const loginScreen = document.getElementById('login-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const status = document.getElementById('status');
+        const actions = document.getElementById('game-actions');
+
+        function join() {
+            const name = document.getElementById('username').value;
+            if (!name) return alert("Введите имя!");
+            socket.emit('joinGame', name);
+            loginScreen.style.display = 'none';
+            gameScreen.style.display = 'block';
+        }
+
+        socket.on('message', msg => status.innerText = msg);
+        socket.on('start', data => { 
+            status.innerText = `Ваш напарник: ${data.partnerName}. Сделайте выбор!`; 
+            actions.style.display = 'block'; 
+        });
+        
+        socket.on('result', data => {
+            status.innerHTML = `<h3 style="color:#fff">${data.text}</h3><p>Ваш напарник <b>${data.partnerName}</b> выбрал: <b>${data.partnerChoice}</b></p>`;
+            actions.style.display = 'none';
+        });
+
+        function send(choice) {
+            socket.emit('makeChoice', choice);
+            status.innerText = "Вы сделали выбор. Ждем напарника...";
+            actions.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
